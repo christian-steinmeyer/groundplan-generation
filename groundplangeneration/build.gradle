@@ -1,0 +1,8 @@
+apply plugin: 'java'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile files('libs/com.momchil_atanasov.data.front-1.0.0.jar')
+}
