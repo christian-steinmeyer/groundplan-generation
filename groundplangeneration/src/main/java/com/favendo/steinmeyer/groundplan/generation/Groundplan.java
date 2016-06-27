@@ -4,6 +4,7 @@ import com.momchil_atanasov.data.front.parser.IOBJParser;
 import com.momchil_atanasov.data.front.parser.OBJModel;
 import com.momchil_atanasov.data.front.parser.OBJParser;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,10 +14,10 @@ public class Groundplan {
     OBJModel model;
 
 
-    public Groundplan(String filename) throws IllegalArgumentException, IOException {
-        try (final InputStream in = new FileInputStream(filename)) {
+    public Groundplan(File file) throws IllegalArgumentException, IOException {
+        try (final InputStream in = new FileInputStream(file)) {
 
-            if (!filename.endsWith(".obj")) {
+            if (!file.getName().endsWith(".obj")) {
                 throw new IllegalArgumentException(
                         "The file must be a wavefront object file (ending in '.obj').");
             }
