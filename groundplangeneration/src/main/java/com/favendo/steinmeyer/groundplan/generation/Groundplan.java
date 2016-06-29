@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.text.MessageFormat;
 
 public class Groundplan {
@@ -40,6 +41,11 @@ public class Groundplan {
                                 "and {3} objects.", numberOfVertices, numberOfNormals,
                         numberOfTexCoords,
                         numberOfObjects);
+    }
+
+    public File generatePlan(){
+//        File result = Files.createFile()
+        return null;
     }
 
 }

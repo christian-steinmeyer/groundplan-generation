@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">GroundplanGenerator</string>
+    <string name="start">Start generating…</string>
+    <string name="loading">Loading… Please wait.</string>
 </resources>
