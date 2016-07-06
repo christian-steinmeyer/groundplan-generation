@@ -1,5 +1,6 @@
 package com.favendo.steinmeyer.groundplan.generation;
 
+import com.favendo.steinmeyer.svg.SVGUtils;
 import com.momchil_atanasov.data.front.parser.IOBJParser;
 import com.momchil_atanasov.data.front.parser.OBJModel;
 import com.momchil_atanasov.data.front.parser.OBJParser;
@@ -8,7 +9,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.text.MessageFormat;
 
 public class Groundplan {
@@ -43,9 +43,11 @@ public class Groundplan {
                         numberOfObjects);
     }
 
-    public File generatePlan(){
-//        File result = Files.createFile()
-        return null;
+    public String generateSVG() {
+        String result = SVGUtils.newSVG(100, 100).addDescription("Some Description")
+                                .drawLine(10, 10, 20, 20).drawLine(10, 20, 20, 20)
+                                .drawLine(20, 10, 20, 20).build();
+        return result;
     }
 
 }

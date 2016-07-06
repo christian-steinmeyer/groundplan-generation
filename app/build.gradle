@@ -35,4 +35,5 @@ dependencies {
     compile 'com.afollestad.material-dialogs:commons:0.8.6.1'
     compile project(':groundplangeneration')
     compile files('libs/com.momchil_atanasov.data.front-1.0.0.jar')
+    compile 'com.caverock:androidsvg:1.2.1'
 }
