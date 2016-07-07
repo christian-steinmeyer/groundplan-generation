@@ -25,6 +25,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Observable;
+import java.util.Observer;
 
 public class MainActivity extends AppCompatActivity implements FileChooserDialog.FileCallback {
 
@@ -57,14 +59,33 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
         runOnUiThread(() -> Toast.makeText(getBaseContext(), message, Toast.LENGTH_SHORT).show());
     }
 
-    private class GroundPlanGenerationTask extends AsyncTask<File, Void, String> {
+    private class GroundPlanGenerationTask extends AsyncTask<File, String, String> implements
+            Observer{
+
+        @Override
+        public void update(final Observable observable, final Object o) {
+            publishProgress(o.toString());
+        }
+
+        @Override
+        protected void onProgressUpdate(final String... values) {
+            super.onProgressUpdate(values);
+            for (String value : values) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        informationTextView.setText(value);
+                    }
+                });
+            }
+        }
 
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
             progressBar.setVisibility(View.VISIBLE);
             startButton.setClickable(false);
-            informationTextView.setText(R.string.loading);
+            informationTextView.setText(R.string.loading_message);
         }
 
         @Override
@@ -73,6 +94,8 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
             File file = files[0]; // only receives one file
             try {
                 groundplan = new Groundplan(file);
+                groundplan.addObserver(this);
+                groundplan.build();
                 String svgString = groundplan.generateSVG();
                 SVG svg = SVG.getFromString(svgString);
 
@@ -95,7 +118,6 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
                         }
                     });
                 }
-//                Log.d(TAG, svgFile.getName());
                 return groundplan.getInformation();
             } catch (SVGParseException e) {
                 showSimpleToast(e.getLocalizedMessage());
@@ -125,7 +147,6 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
             }
 
             String newFilename = filename.substring(0, filename.lastIndexOf(".")) + ".svg";
-            Log.d("AsyncTask", filename + " --> " + newFilename);
             File mediaFile = new File(mediaStorageDir.getPath() + File.separator + newFilename);
             try (FileOutputStream out = new FileOutputStream(mediaFile)) {
                 out.write(svg.getBytes());

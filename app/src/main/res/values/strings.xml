@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">GroundplanGenerator</string>
-    <string name="start">Start generating…</string>
-    <string name="loading">Loading… Please wait.</string>
+    <string name="start_message">Start generating…</string>
+    <string name="loading_message">Loading… Please wait.</string>
+    <string name="reading_message">Reading Input File… Please wait.</string>
+    <string name="analyzing_message">Analyzing Input File… Please wait.</string>
+
 </resources>
