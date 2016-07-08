@@ -20,6 +20,7 @@ import com.caverock.androidsvg.SVG;
 import com.caverock.androidsvg.SVGParseException;
 import com.favendo.steinmeyer.app.R;
 import com.favendo.steinmeyer.groundplan.generation.Groundplan;
+import com.favendo.steinmeyer.wavefront.WavefrontFormatException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -59,8 +60,8 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
         runOnUiThread(() -> Toast.makeText(getBaseContext(), message, Toast.LENGTH_SHORT).show());
     }
 
-    private class GroundPlanGenerationTask extends AsyncTask<File, String, String> implements
-            Observer{
+    private class GroundPlanGenerationTask extends AsyncTask<File, String, String>
+            implements Observer {
 
         @Override
         public void update(final Observable observable, final Object o) {
@@ -119,21 +120,21 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
                     });
                 }
                 return groundplan.getInformation();
-            } catch (SVGParseException e) {
+            } catch (SVGParseException | IllegalArgumentException e) {
                 showSimpleToast(e.getLocalizedMessage());
                 e.printStackTrace();
-                return null;
-            } catch (IllegalArgumentException e) {
-                showSimpleToast(e.getLocalizedMessage());
-                e.printStackTrace();
-                return null;
             } catch (IOException e) {
                 Log.e(TAG, e.getLocalizedMessage());
                 showSimpleToast("An error occurred during the handling of the file '" +
                         file.getName() + "'.");
                 e.printStackTrace();
                 return "See log for error.";
+            } catch (WavefrontFormatException e) {
+                Log.e(TAG, e.getLocalizedMessage());
+                showSimpleToast("The given file '" + file.getName() +
+                        "' does not comply with the format requirements.");
             }
+            return null;
         }
 
         private void exportSVGFile(final String filename, final String svg) {
@@ -150,8 +151,6 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
             File mediaFile = new File(mediaStorageDir.getPath() + File.separator + newFilename);
             try (FileOutputStream out = new FileOutputStream(mediaFile)) {
                 out.write(svg.getBytes());
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
