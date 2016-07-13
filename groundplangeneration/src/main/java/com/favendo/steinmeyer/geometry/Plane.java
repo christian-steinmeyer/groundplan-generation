@@ -26,9 +26,18 @@ public class Plane {
         return points;
     }
 
+    public Vector3 getPoint() {
+        return point;
+    }
+
     public void mergeFace(Face face) {
         points.addAll(face.getPoints());
         updateNormal(face);
+    }
+
+    public void addPoint(Vertex vertex){
+        points.add(vertex);
+//        updateNormal(); TODO
     }
 
     private void updateNormal(final Face face) {
@@ -54,7 +63,7 @@ public class Plane {
         return true;
     }
 
-    private boolean includes(Vector3 v) {
+    public boolean includes(Vector3 v) {
         Vector3 difference = Vector3Utils.subtract(v, point);
         return Math.abs(Vector3Utils.dot(normal, difference)) < ACCURACY;
     }

@@ -5,6 +5,7 @@ import com.favendo.steinmeyer.geometry.Vertex;
 import com.favendo.steinmeyer.geometry.VertexNormal;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Created by Christian Steinmeyer on 08.07.2016.
@@ -32,6 +33,10 @@ public class WavefrontObject {
 
     public void addVertex(Vertex vertex) {
         vertices.add(vertex);
+    }
+
+    public void addVertices(Collection<Vertex> vertices){
+        this.vertices.addAll(vertices);
     }
 
     public void addVertexNormal(VertexNormal normal) {

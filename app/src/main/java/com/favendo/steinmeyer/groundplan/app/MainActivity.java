@@ -97,8 +97,12 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
                 groundplan = new Groundplan(file);
                 groundplan.addObserver(this);
                 groundplan.build();
-                String svgString = groundplan.generateSVG();
+
+                String wavefrontString = groundplan.generateWavefront();
+                exportWavefrontFile(file.getName(), wavefrontString);
+                String svgString = groundplan.generateSVG("Some Description");
                 SVG svg = SVG.getFromString(svgString);
+
 
 
                 // Create a canvas to draw onto
@@ -138,6 +142,16 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
         }
 
         private void exportSVGFile(final String filename, final String svg) {
+            String newFilename = filename.substring(0, filename.lastIndexOf(".")) + ".svg";
+            exportToFile(newFilename, svg);
+        }
+
+        private void exportWavefrontFile(final String filename, final String wavefront){
+            String newFilename = filename.substring(0, filename.lastIndexOf(".")) + "_pp.obj";
+            exportToFile(newFilename, wavefront);
+        }
+
+        private void exportToFile( final String filename, final String content){
             File mediaStorageDir = new File(
                     Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
                     MainActivity.this.getString(R.string.app_name));
@@ -146,11 +160,9 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
                     Log.d("AsyncTask", "failed to create directory");
                 }
             }
-
-            String newFilename = filename.substring(0, filename.lastIndexOf(".")) + ".svg";
-            File mediaFile = new File(mediaStorageDir.getPath() + File.separator + newFilename);
+            File mediaFile = new File(mediaStorageDir.getPath() + File.separator + filename);
             try (FileOutputStream out = new FileOutputStream(mediaFile)) {
-                out.write(svg.getBytes());
+                out.write(content.getBytes());
             } catch (IOException e) {
                 e.printStackTrace();
             }
