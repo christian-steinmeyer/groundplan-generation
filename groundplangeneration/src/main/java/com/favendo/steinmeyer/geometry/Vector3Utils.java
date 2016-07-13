@@ -56,7 +56,12 @@ public class Vector3Utils {
         return new Vector3(newX, newY, newZ);
     }
 
+    /**
+     *
+     * @return delta where
+     * delta = acos(dot(v, o) / (|v| * |o|))
+     */
     public static float angle(Vector3 v, Vector3 o){
-        return (float) Math.acos(dot(norm(v), norm(o)));
+        return (float) Math.acos(dot(norm(v), norm(o)) / (length(v) * length(o)));
     }
 }
