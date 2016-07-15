@@ -7,9 +7,9 @@ import com.favendo.steinmeyer.geometry.Vector3Utils;
 import com.favendo.steinmeyer.geometry.Vertex;
 import com.favendo.steinmeyer.svg.SVGUtils;
 import com.favendo.steinmeyer.wavefront.WavefrontFormatException;
+import com.favendo.steinmeyer.wavefront.WavefrontGenerator;
 import com.favendo.steinmeyer.wavefront.WavefrontObject;
 import com.favendo.steinmeyer.wavefront.WavefrontParser;
-import com.favendo.steinmeyer.wavefront.WavefrontGenerator;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,12 +24,14 @@ public class Groundplan extends Observable {
 
     private Logger log = Logger.getLogger(this.getClass().getName());
 
-    private final float ACCURACY = 0.01f;
+    private final float ACCURACY_RADIANS = 0.087266f; // ~ 5° = 2 * pi / 360 * 5
+    private final float ACCURACY_METERS = 0.05f;
+    private final int NOISE_REDUCTION_ITERATIONS = 10;
 
     File file;
     WavefrontObject model;
     ArrayList<Vertex> vertices;
-    Collection<Plane> planes = new ArrayList<>();
+    ArrayList<Plane> planes = new ArrayList<>();
 
 
     public Groundplan(File file) throws IllegalArgumentException {
@@ -42,12 +44,30 @@ public class Groundplan extends Observable {
     }
 
     public void build() throws IOException, WavefrontFormatException {
-        publish("Parsing file");
+        publish("Parsing file... This can take a while");
         model = new WavefrontParser().parseWavefrontFile(file);
         vertices = new ArrayList<>(model.getVertices());
-        findPlanesWithVertices();
-//        findPlanesWithFaces();
-//        removeUnimportantPlanes(5000);
+//        findPlanesWithVertices();
+        findPlanesWithFaces();
+        for (int i = 0; i < NOISE_REDUCTION_ITERATIONS; i++) {
+            removeOutliers();
+            removeUnimportantPlanes(vertices.size() / 50);
+        }
+    }
+
+    private void removeOutliers() {
+        for (Plane plane : planes) {
+            Collection<Vector3> cleanedPoints = new ArrayList<>();
+            for (Vector3 point : plane.getPoints()) {
+                if (plane.getDistance(point) < 2 * ACCURACY_METERS) {
+                    cleanedPoints.add(point);
+                }
+            }
+            log.warning("Cleaned Points:" + cleanedPoints.size());
+            log.warning("Removing " + (plane.getPoints().size() - cleanedPoints.size()) +
+                    " outliers from plane with " + plane.getPoints().size() + " points.");
+            plane.resetPoints(cleanedPoints);
+        }
     }
 
     private void findPlanesWithVertices() throws WavefrontFormatException {
@@ -60,26 +80,31 @@ public class Groundplan extends Observable {
         }
         final int groupSize = numberOfVertices / 200;
         for (int iteration = 0; iteration < iterations; iteration++) {
-            for (int j = 0; j < groupSize; j+= 3){
+            for (int j = 0; j < groupSize; j += 3) {
                 Vertex v1 = popRandomVertex();
                 Vertex v2 = popRandomVertex();
                 Vertex v3 = popRandomVertex();
                 Face face = new Face(v1, v2, v3);
                 boolean isNewPlane = true;
+                int bestMatch = -1;
+                float angle = Integer.MAX_VALUE;
                 for (Plane plane : planes) {
                     if (plane.contains(face)) {
-                        plane.mergeFace(face);
-                        isNewPlane = false;
+                        float thisAngle = Vector3Utils.angle(face.getNormal(), plane.getNormal());
+                        bestMatch = thisAngle < angle ? planes.indexOf(plane) : bestMatch;
+                        angle = Math.min(angle, thisAngle);
                     }
+                }
+                if (bestMatch > 0) {
+                    planes.get(bestMatch).mergeFace(face);
+                    isNewPlane = false;
                 }
                 if (isNewPlane) {
                     planes.add(new Plane(face));
                 }
-                publish("Finding Planes for " + numberOfVertices + " vertices: " + iteration + "%");
-
             }
-            removeUnimportantPlanes(groupSize / 50);
-            log.warning("iteration " + iteration + "% --> number of Planes: " + planes.size());
+            removeUnimportantPlanes(groupSize / 25);
+            publish("Finding Planes for " + numberOfVertices + " vertices: " + iteration + "%");
         }
     }
 
@@ -101,11 +126,18 @@ public class Groundplan extends Observable {
                 model.getFaces().size() + " faces out of which " + numberOfFaces + " are vertical");
         for (Face face : verticalFaces) {
             boolean isNewPlane = true;
+            int bestMatch = -1;
+            float angle = Integer.MAX_VALUE;
             for (Plane plane : planes) {
                 if (plane.contains(face)) {
-                    plane.mergeFace(face);
-                    isNewPlane = false;
+                    float thisAngle = Vector3Utils.angle(face.getNormal(), plane.getNormal());
+                    bestMatch = thisAngle < angle ? planes.indexOf(plane) : bestMatch;
+                    angle = Math.min(angle, thisAngle);
                 }
+            }
+            if (bestMatch > 0) {
+                planes.get(bestMatch).mergeFace(face);
+                isNewPlane = false;
             }
             if (isNewPlane) {
                 planes.add(new Plane(face));
@@ -116,12 +148,14 @@ public class Groundplan extends Observable {
             }
             counter++;
         }
+        removeUnimportantPlanes(vertices.size() / 50);
     }
 
     private Collection<Face> findVerticalFaces(final Collection<Face> faces) {
         Collection<Face> result = new ArrayList<>();
         for (Face face : faces) {
-            if (Math.abs(Vector3Utils.dot(face.getNormal(), new Vector3(0, 0, 1))) < ACCURACY) {
+            if (Math.abs(Vector3Utils.dot(face.getNormal(), new Vector3(0, 0, 1))) <
+                    ACCURACY_RADIANS) {
                 result.add(face);
             }
         }
@@ -153,7 +187,6 @@ public class Groundplan extends Observable {
 
     public String generateSVG(String description) {
         SVGUtils svg = SVGUtils.newSVG("cm", description);
-
         for (Plane plane : planes) {
 
             Vector3 min = plane.getPoint();
@@ -168,7 +201,7 @@ public class Groundplan extends Observable {
                 }
             }
             // if plane parallel to y axis, redo for y values
-            if (Math.abs(min.getX() - max.getX()) < ACCURACY) {
+            if (Math.abs(min.getX() - max.getX()) < ACCURACY_METERS) {
                 for (Vector3 point : plane.getPoints()) {
                     if (point.getY() < min.getY()) {
                         min = point;
@@ -178,19 +211,21 @@ public class Groundplan extends Observable {
                     }
                 }
             }
-            log.warning("size: " + plane.getPoints().size());
-            log.warning("min: " + min.getX() + " | " + min.getY());
-            log.warning("max: " + max.getX() + " | " + max.getY());
             svg.addLine(min.getX(), min.getY(), max.getX(), max.getY());
         }
         return svg.build();
     }
 
-    public String generateWavefront(){
-        WavefrontObject postProcessingModel = new WavefrontObject();
-        postProcessingModel.addVertices(vertices);
-
-        return new WavefrontGenerator().generateWavefront(postProcessingModel);
+    public String generateWavefront() {
+        WavefrontGenerator wavefront = new WavefrontGenerator();
+        int counter = 1;
+        for (Plane plane : planes) {
+            publish("Generating Wavefront for plane  " + counter + " / " + planes.size() + "...");
+            for (Vector3 v : plane.getPoints()) {
+                wavefront.writeVertex(new Vertex(v.getX(), v.getY(), v.getZ()));
+            }
+        }
+        return wavefront.build();
     }
 
     private void publish(String message) {

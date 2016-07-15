@@ -1,5 +1,7 @@
 package com.favendo.steinmeyer.geometry;
 
+import java.util.Collection;
+
 /**
  * Created by Christian Steinmeyer on 08.07.2016.
  *
@@ -63,5 +65,13 @@ public class Vector3Utils {
      */
     public static float angle(Vector3 v, Vector3 o){
         return (float) Math.acos(dot(norm(v), norm(o)) / (length(v) * length(o)));
+    }
+
+    public static Vector3 average(final Collection<Vector3> points) {
+        Vector3 result = new Vector3(0f, 0f, 0f);
+        for (Vector3 point : points) {
+            result = add(point, result);
+        }
+        return scalar(1f / points.size(), result) ;
     }
 }

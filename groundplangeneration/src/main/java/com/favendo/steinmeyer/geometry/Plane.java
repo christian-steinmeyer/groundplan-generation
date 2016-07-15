@@ -5,25 +5,29 @@ import java.util.Collection;
 
 /**
  * Created by Christian Steinmeyer on 08.07.2016.
- *
+ * <p>
  * Represents a plane in 3D space. represented by a point and a normal vector.
  */
 public class Plane {
 
-    final float ACCURACY = 0.5f;
+    final float ACCURACY = 0.5f; // radians
 
     Collection<Vector3> points = new ArrayList<>();
     Vector3 point;
     Vector3 normal;
 
-    public Plane (Face face) {
+    public Plane(Face face) {
         this.points.addAll(face.getPoints());
-        point = face.getPoint();
+        point = Vector3Utils.average(face.getPoints());
         normal = face.getNormal();
     }
 
     public Collection<Vector3> getPoints() {
         return points;
+    }
+
+    public Vector3 getNormal() {
+        return normal;
     }
 
     public Vector3 getPoint() {
@@ -33,17 +37,20 @@ public class Plane {
     public void mergeFace(Face face) {
         points.addAll(face.getPoints());
         updateNormal(face);
-    }
-
-    public void addPoint(Vertex vertex){
-        points.add(vertex);
-//        updateNormal(); TODO
+        updatePoint(face);
     }
 
     private void updateNormal(final Face face) {
         int numberOfFaces = points.size() / 3;
         Vector3 sum = Vector3Utils.add(face.normal, Vector3Utils.scalar(numberOfFaces, normal));
         normal = Vector3Utils.norm(Vector3Utils.scalar(1f / (numberOfFaces + 1), sum));
+    }
+
+    private void updatePoint(final Face face) {
+        int numberOfFaces = points.size() / 3;
+        Vector3 sum = Vector3Utils.add(Vector3Utils.average(face.getPoints()),
+                Vector3Utils.scalar(numberOfFaces, point));
+        point = Vector3Utils.scalar(1f / (numberOfFaces + 1), sum);
     }
 
     /**
@@ -56,7 +63,7 @@ public class Plane {
 
     private boolean includes(final Collection<Vector3> points) {
         for (Vector3 point : points) {
-            if (!includes(point)){
+            if (!includes(point)) {
                 return false;
             }
         }
@@ -72,4 +79,20 @@ public class Plane {
         return Math.abs(Vector3Utils.angle(normal, f.normal)) < ACCURACY;
     }
 
+    /**
+     * Since the normal vector is normalized, the distance is given by the projection of any vector
+     * between the given point and a point on the plane onto the normal.
+     */
+    public void resetPoints(final Collection<Vector3> newPoints) {
+        this.points = new ArrayList<>(newPoints);
+        this.point = Vector3Utils.average(points);
+    }
+
+    /**
+     * Since the normal vector is normalized, the distance is given by the projection of any vector
+     * between the given point and a point on the plane onto the normal.
+     */
+    public float getDistance(final Vector3 point) {
+        return Math.abs(Vector3Utils.dot(Vector3Utils.subtract(point, this.point), normal));
+    }
 }

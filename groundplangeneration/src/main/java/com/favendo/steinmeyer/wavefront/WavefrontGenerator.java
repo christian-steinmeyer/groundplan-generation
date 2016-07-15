@@ -21,13 +21,17 @@ import sun.security.pkcs.ParsingException;
  */
 public class WavefrontGenerator {
 
+    StringBuilder builder = new StringBuilder();
+
     public String generateWavefront(WavefrontObject object){
 
-        StringBuilder builder = new StringBuilder();
         for (Vertex vertex : object.getVertices()) {
-            builder.append(writeVertex(vertex));
-            builder.append("\n");
+            writeVertex(vertex);
         }
+        return build();
+    }
+
+    public String build(){
         return builder.toString();
     }
 
@@ -36,8 +40,9 @@ public class WavefrontGenerator {
      * <p>
      * where <code>x, y, z</code> are floats
      */
-    private String writeVertex(final Vertex vertex) {
-        return "v" + writeVector3(vertex);
+    public void writeVertex(final Vertex vertex) {
+        builder.append("v" + writeVector3(vertex));
+        builder.append("\n");
     }
 
     /**
