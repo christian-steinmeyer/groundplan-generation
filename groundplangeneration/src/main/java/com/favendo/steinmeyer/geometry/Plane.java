@@ -12,17 +12,48 @@ public class Plane {
 
     final float ACCURACY = 0.5f; // radians
 
-    Collection<Vector3> points = new ArrayList<>();
+    final float THRESHOLD = 6;
+
+    Collection<Quadrant> quadrants = new ArrayList<>();
+
+    int numberOfPoints = 0;
+
     Vector3 point;
     Vector3 normal;
 
     public Plane(Face face) {
-        this.points.addAll(face.getPoints());
         point = Vector3Utils.average(face.getPoints());
+        for (Vector3 vector : face.getPoints()) {
+            addPoint(vector);
+        }
         normal = face.getNormal();
     }
 
+    private void addPoint(final Vector3 vector) {
+        Quadrant target = getQuadrantForVector(vector);
+        if (target != null) {
+            target.addPoint(vector);
+        } else {
+            quadrants.add(new Quadrant(vector));
+        }
+        numberOfPoints++;
+    }
+
+    private Quadrant getQuadrantForVector(final Vector3 vector) {
+        Vector3 quadrantOrigin = QuadrantUtils.getSpecs(vector);
+        for (Quadrant quadrant : quadrants) {
+            if (quadrant.getOrigin().equals(quadrantOrigin)) {
+                return quadrant;
+            }
+        }
+        return null;
+    }
+
     public Collection<Vector3> getPoints() {
+        Collection<Vector3> points = new ArrayList<>();
+        for (Quadrant quadrant : quadrants) {
+            points.addAll(quadrant.getPoints());
+        }
         return points;
     }
 
@@ -35,19 +66,21 @@ public class Plane {
     }
 
     public void mergeFace(Face face) {
-        points.addAll(face.getPoints());
+        for (Vector3 vector : face.getPoints()) {
+            addPoint(vector);
+        }
         updateNormal(face);
         updatePoint(face);
     }
 
     private void updateNormal(final Face face) {
-        int numberOfFaces = points.size() / 3;
+        int numberOfFaces = numberOfPoints / 3;
         Vector3 sum = Vector3Utils.add(face.normal, Vector3Utils.scalar(numberOfFaces, normal));
         normal = Vector3Utils.norm(Vector3Utils.scalar(1f / (numberOfFaces + 1), sum));
     }
 
     private void updatePoint(final Face face) {
-        int numberOfFaces = points.size() / 3;
+        int numberOfFaces = numberOfPoints / 3;
         Vector3 sum = Vector3Utils.add(Vector3Utils.average(face.getPoints()),
                 Vector3Utils.scalar(numberOfFaces, point));
         point = Vector3Utils.scalar(1f / (numberOfFaces + 1), sum);
@@ -79,13 +112,47 @@ public class Plane {
         return Math.abs(Vector3Utils.angle(normal, f.normal)) < ACCURACY;
     }
 
+    public void removeOutliers() {
+        Collection<Quadrant> newQuadrants = new ArrayList<>();
+        for (Quadrant quadrant : quadrants) {
+            if (quadrant.getSize() > THRESHOLD) {
+                newQuadrants.add(quadrant);
+            } else {
+                Collection<Quadrant> neighbors =
+                        getQuadrants(QuadrantUtils.getNeighborOrigins(quadrant));
+                int numberOfNeighbors = 0;
+                for (Quadrant neighbor : neighbors) {
+                    numberOfNeighbors += neighbor.getSize();
+                }
+                if (numberOfNeighbors > 3 * THRESHOLD){
+                    newQuadrants.add(quadrant);
+                }
+            }
+        }
+    }
+
+    private Collection<Quadrant> getQuadrants(final Collection<Vector3> origins) {
+        Collection<Quadrant> result = new ArrayList<>();
+        for (Quadrant quadrant : quadrants) {
+            for (Vector3 origin : origins) {
+                if (quadrant.getOrigin().equals(origin)){
+                    result.add(quadrant);
+                }
+            }
+        }
+        return result;
+    }
+
     /**
      * Since the normal vector is normalized, the distance is given by the projection of any vector
      * between the given point and a point on the plane onto the normal.
      */
     public void resetPoints(final Collection<Vector3> newPoints) {
-        this.points = new ArrayList<>(newPoints);
-        this.point = Vector3Utils.average(points);
+        this.quadrants = new ArrayList<>();
+        for (Vector3 point : newPoints) {
+            addPoint(point);
+        }
+        this.point = Vector3Utils.average(newPoints);
     }
 
     /**
