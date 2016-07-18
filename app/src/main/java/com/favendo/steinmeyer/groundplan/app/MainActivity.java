@@ -23,7 +23,6 @@ import com.favendo.steinmeyer.groundplan.generation.Groundplan;
 import com.favendo.steinmeyer.wavefront.WavefrontFormatException;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Observable;
@@ -104,12 +103,12 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
                 SVG svg = SVG.getFromString(svgString);
 
 
-
                 // Create a canvas to draw onto
                 if (svg != null && svg.getDocumentWidth() != -1) {
                     exportSVGFile(file.getName(), svgString);
                     int width = (int) Math.ceil(svg.getDocumentWidth());
                     int height = (int) Math.ceil(svg.getDocumentHeight());
+
                     Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
                     Canvas canvas = new Canvas(bitmap);
 
@@ -146,12 +145,12 @@ public class MainActivity extends AppCompatActivity implements FileChooserDialog
             exportToFile(newFilename, svg);
         }
 
-        private void exportWavefrontFile(final String filename, final String wavefront){
+        private void exportWavefrontFile(final String filename, final String wavefront) {
             String newFilename = filename.substring(0, filename.lastIndexOf(".")) + "_pp.obj";
             exportToFile(newFilename, wavefront);
         }
 
-        private void exportToFile( final String filename, final String content){
+        private void exportToFile(final String filename, final String content) {
             File mediaStorageDir = new File(
                     Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
                     MainActivity.this.getString(R.string.app_name));
