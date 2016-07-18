@@ -17,7 +17,6 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Observable;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
 public class Groundplan extends Observable {
@@ -26,7 +25,7 @@ public class Groundplan extends Observable {
 
     private final float ACCURACY_RADIANS = 0.087266f; // ~ 5° = 2 * pi / 360 * 5
     private final float ACCURACY_METERS = 0.05f;
-    private final int NOISE_REDUCTION_ITERATIONS = 10;
+    private final int NOISE_REDUCTION_ITERATIONS = 3;
 
     File file;
     WavefrontObject model;
@@ -47,8 +46,7 @@ public class Groundplan extends Observable {
         publish("Parsing file... This can take a while");
         model = new WavefrontParser().parseWavefrontFile(file);
         vertices = new ArrayList<>(model.getVertices());
-//        findPlanesWithVertices();
-        findPlanesWithFaces();
+        findPlanes();
         for (int i = 0; i < NOISE_REDUCTION_ITERATIONS; i++) {
             removeOutliers();
             removeUnimportantPlanes(vertices.size() / 50);
@@ -57,65 +55,21 @@ public class Groundplan extends Observable {
 
     private void removeOutliers() {
         for (Plane plane : planes) {
+            log.warning("Removing outliers for plane:" + plane);
+            plane.removeOutliers();
             Collection<Vector3> cleanedPoints = new ArrayList<>();
             for (Vector3 point : plane.getPoints()) {
-                if (plane.getDistance(point) < 2 * ACCURACY_METERS) {
+                if (plane.getDistance(point) < 3 * ACCURACY_METERS) {
                     cleanedPoints.add(point);
                 }
             }
-            log.warning("Cleaned Points:" + cleanedPoints.size());
-            log.warning("Removing " + (plane.getPoints().size() - cleanedPoints.size()) +
-                    " outliers from plane with " + plane.getPoints().size() + " points.");
+            log.warning((plane.getPoints().size() - cleanedPoints.size()) +
+                    " from " + plane.getPoints().size() + " points.");
             plane.resetPoints(cleanedPoints);
         }
     }
 
-    private void findPlanesWithVertices() throws WavefrontFormatException {
-        int numberOfVertices = vertices.size();
-        publish("Finding Planes for " + numberOfVertices + " vertices: 0%");
-        final int iterations = 100;
-        if (numberOfVertices < 3 * iterations) {
-            throw new WavefrontFormatException(
-                    "Not enough data available. Please provide a scan with more data.");
-        }
-        final int groupSize = numberOfVertices / 200;
-        for (int iteration = 0; iteration < iterations; iteration++) {
-            for (int j = 0; j < groupSize; j += 3) {
-                Vertex v1 = popRandomVertex();
-                Vertex v2 = popRandomVertex();
-                Vertex v3 = popRandomVertex();
-                Face face = new Face(v1, v2, v3);
-                boolean isNewPlane = true;
-                int bestMatch = -1;
-                float angle = Integer.MAX_VALUE;
-                for (Plane plane : planes) {
-                    if (plane.contains(face)) {
-                        float thisAngle = Vector3Utils.angle(face.getNormal(), plane.getNormal());
-                        bestMatch = thisAngle < angle ? planes.indexOf(plane) : bestMatch;
-                        angle = Math.min(angle, thisAngle);
-                    }
-                }
-                if (bestMatch > 0) {
-                    planes.get(bestMatch).mergeFace(face);
-                    isNewPlane = false;
-                }
-                if (isNewPlane) {
-                    planes.add(new Plane(face));
-                }
-            }
-            removeUnimportantPlanes(groupSize / 25);
-            publish("Finding Planes for " + numberOfVertices + " vertices: " + iteration + "%");
-        }
-    }
-
-    private Vertex popRandomVertex() {
-        int index = ThreadLocalRandom.current().nextInt(0, vertices.size());
-        Vertex result = vertices.get(index);
-        vertices.remove(index);
-        return result;
-    }
-
-    private void findPlanesWithFaces() {
+    private void findPlanes() {
         publish("Finding Planes for " + model.getFaces().size() + " faces: 0%");
         Collection<Face> verticalFaces = findVerticalFaces(model.getFaces());
         int numberOfFaces = verticalFaces.size();
