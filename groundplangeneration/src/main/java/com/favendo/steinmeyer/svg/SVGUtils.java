@@ -2,6 +2,7 @@ package com.favendo.steinmeyer.svg;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 /**
@@ -53,6 +54,14 @@ public class SVGUtils {
         svg += "\t<line x1=\"" + x1 + unit + "\" y1=\"" + y1 + unit + "\" x2=\"" + x2 + unit +
                 "\" y2=\"" + y2 + unit + "\" stroke=\"rgb(0,0,0)\" stroke-width=\"" + STROKE_WIDTH +
                 "\" />\n";
+
+        float centerX = (x1 + x2) / 2;
+        float centerY = (y1 + y2) / 2;
+        float length = (float) Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        String lengthString = String.format(Locale.ENGLISH, "%.2f m", length);
+
+        svg += "\t<text x=\"" + centerX + unit + "\" y=\"" + centerY + unit +
+                "\" fill=\"rgb(0,0,0)\">" + lengthString + "</text>\n";
     }
 
     public String build() {
@@ -82,8 +91,8 @@ public class SVGUtils {
             maxY = Math.max(maxY, Math.max(line.y1, line.y2));
             minY = Math.min(minY, Math.min(line.y1, line.y2));
         }
-        height = Math.abs(maxY - minY);
-        width = Math.abs(maxX - minX);
+        height = Math.abs(maxY - minY) + 0.5f;
+        width = Math.abs(maxX - minX) + 0.5f;
         xOffset = -minX;
         yOffset = -minY;
     }

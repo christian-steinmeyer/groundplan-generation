@@ -47,25 +47,26 @@ public class Groundplan extends Observable {
         model = new WavefrontParser().parseWavefrontFile(file);
         vertices = new ArrayList<>(model.getVertices());
         findPlanes();
-        for (int i = 0; i < NOISE_REDUCTION_ITERATIONS; i++) {
-            removeOutliers();
-            removeUnimportantPlanes(vertices.size() / 50);
-        }
+        reduceNoise();
     }
 
-    private void removeOutliers() {
-        for (Plane plane : planes) {
-            log.warning("Removing outliers for plane:" + plane);
-            plane.removeOutliers();
-            Collection<Vector3> cleanedPoints = new ArrayList<>();
-            for (Vector3 point : plane.getPoints()) {
-                if (plane.getDistance(point) < 3 * ACCURACY_METERS) {
-                    cleanedPoints.add(point);
+    private void reduceNoise() {
+        for (int i = 0; i < NOISE_REDUCTION_ITERATIONS; i++) {
+            int counter = 0;
+            for (Plane plane : planes) {
+                publish("Removing noise: step " + (i + 1) + " of " + NOISE_REDUCTION_ITERATIONS +
+                        " - " + counter + " / " + planes.size());
+                plane.removeOutliers();
+                Collection<Vector3> cleanedPoints = new ArrayList<>();
+                for (Vector3 point : plane.getPoints()) {
+                    if (plane.getDistance(point) < 3 * ACCURACY_METERS) {
+                        cleanedPoints.add(point);
+                    }
                 }
+                plane.resetPoints(cleanedPoints);
+                counter++;
             }
-            log.warning((plane.getPoints().size() - cleanedPoints.size()) +
-                    " from " + plane.getPoints().size() + " points.");
-            plane.resetPoints(cleanedPoints);
+            removeUnimportantPlanes(vertices.size() / 50);
         }
     }
 
